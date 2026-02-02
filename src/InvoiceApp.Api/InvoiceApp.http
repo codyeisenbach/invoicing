@@ -1,0 +1,87 @@
+@InvoiceApp_HostAddress = http://localhost:5004
+
+GET {{InvoiceApp_HostAddress}}/invoice/
+Accept: application/json
+
+###
+
+GET {{InvoiceApp_HostAddress}}/invoice/3
+Accept: application/json
+
+###
+
+POST {{InvoiceApp_HostAddress}}/invoice
+Content-Type: application/json
+
+{
+    "InvoiceId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "CustomerId": "e0293128-099e-4330-9759-399c5a153202",
+    "CustomerName": "Test Customer 1",
+    "InvoiceDate": "2024-01-18T00:00:00",
+    "InvoiceItems": [
+  {
+    "invoiceItemId": "b4923616-2c5e-4682-9904-899881735391",
+    "unitPrice": 100.00,
+    "description": "Consulting Services",
+    "quantity": 2,
+    "lineTotal": 200.00
+  },
+  {
+    "invoiceItemId": "a8239012-f223-4120-8023-102381203912",
+    "unitPrice": 50.00,
+    "description": "Travel Expenses",
+    "quantity": 1,
+    "lineTotal": 50.00
+  }
+],
+"TotalAmount": 150.00,
+"SubTotal": 150.00,
+"Tax": 12.38,
+"DueDate": "2026-02-18T00:00:00",
+"TestId": 3,
+"Payments": [
+    {
+        "Amount": 10,
+        "PaymentDate": "2025-06-18T00:00:00"
+    }
+]
+}
+
+###
+
+PUT {{InvoiceApp_HostAddress}}/invoice/3
+Content-Type: application/json
+
+{
+    "InvoiceId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+    "CustomerId": "e0293128-099e-4330-9759-399c5a153202",
+    "CustomerName": "Test Customer 1",
+    "InvoiceDate": "2024-01-18T00:00:00",
+    "InvoiceItems": [
+  {
+    "invoiceItemId": "b4923616-2c5e-4682-9904-899881735391",
+    "unitPrice": 0.00,
+    "description": "Consulting Services",
+    "quantity": 2,
+    "lineTotal": 0.00
+  },
+  {
+    "invoiceItemId": "a8239012-f223-4120-8023-102381203912",
+    "unitPrice": 0.00,
+    "description": "Travel Expenses",
+    "quantity": 1,
+    "lineTotal": 0.00
+  }
+],
+"TotalAmount": 0.00,
+"SubTotal": 0.00,
+"Tax": 0.00,
+"DueDate": "2026-02-18T00:00:00",
+"TestId": 3
+}
+
+###
+
+DELETE {{InvoiceApp_HostAddress}}/invoice/3
+
+###
