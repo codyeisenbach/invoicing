@@ -1,91 +1,120 @@
+using InvoiceApp.Api.Contracts;
+using InvoiceApp.Infrastructure;
 using InvoiceApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApp.Services;
 
-public static class InvoiceService
+public interface IInvoiceService
 {
-    static List<Invoice> Invoices { get; }
-    static int nextId = 3;
-    static InvoiceService() => Invoices = new List<Invoice>
+    Task<List<Invoice>> GetAllAsync();
+    Task<Invoice?> GetByIdAsync(Guid id);
+    Task<Invoice> CreateAsync(CreateInvoiceRequest request);
+    Task<bool> UpdateAsync(Guid id, UpdateInvoiceRequest request);
+    Task<bool> DeleteAsync(Guid id);
+}
+
+public sealed class InvoiceService : IInvoiceService
+{
+    private readonly InvoiceAppContext _context;
+
+    public InvoiceService(InvoiceAppContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Invoice>> GetAllAsync()
+    {
+        return await _context.Invoices
+            .Include(i => i.InvoiceItems)
+            .ToListAsync();
+    }
+
+    public async Task<Invoice?> GetByIdAsync(Guid id)
+    {
+        return await _context.Invoices
+            .Include(i => i.InvoiceItems)
+            .FirstOrDefaultAsync(i => i.InvoiceId == id);
+    }
+
+    public async Task<Invoice> CreateAsync(CreateInvoiceRequest request)
+    {
+        var invoice = new Invoice
         {
-            new() {
-                InvoiceId = Guid.NewGuid(),
-                InvoiceDate = DateTime.Now.AddDays(-5), // 5 days ago
-                CustomerId = Guid.NewGuid(),
-                CustomerName = "Acme Corp",
-                Subtotal = 150.00m,
-                Tax = 12.00m,
-                TotalAmount = 162.00m,
-                DueDate = DateTime.Now.AddDays(25),
-                TestId = 1,
-                InvoiceItems = new List<InvoiceItem>
+            CustomerId = request.CustomerId,
+            CustomerName = request.CustomerName,
+            InvoiceDate = request.InvoiceDate,
+            DueDate = request.DueDate,
+            InvoiceItems = request.Items
+                .Select(item => new InvoiceItem
                 {
-                    new InvoiceItem
-                    {
-                        InvoiceItemId = Guid.NewGuid(),
-                        Description = "Widget Type A",
-                        Quantity = 5,
-                        UnitPrice = 20.00m,
-                        LineTotal = 100.00m
-                    },
-                    new InvoiceItem
-                    {
-                        InvoiceItemId = Guid.NewGuid(),
-                        Description = "Service Fee",
-                        Quantity = 1,
-                        UnitPrice = 50.00m,
-                        LineTotal = 50.00m
-                    }
-                }
-            },
-            new() {
-                InvoiceId = Guid.NewGuid(),
-                InvoiceDate = DateTime.Now.AddDays(-1),
-                CustomerId = Guid.NewGuid(),
-                CustomerName = "Jane Doe",
-                Subtotal = 40.00m,
-                Tax = 3.20m,
-                TotalAmount = 43.20m,
-                DueDate = DateTime.Now.AddDays(29),
-                TestId = 2,
-                InvoiceItems = new List<InvoiceItem>
-                {
-                    new InvoiceItem
-                    {
-                        InvoiceItemId = Guid.NewGuid(),
-                        Description = "Consulting Hour",
-                        Quantity = 2,
-                        UnitPrice = 20.00m,
-                        LineTotal = 40.00m
-                    }
-                }
-            }
+                    UnitPrice = item.UnitPrice,
+                    Description = item.Description,
+                    Quantity = item.Quantity
+                })
+                .ToList()
         };
 
-    public static List<Invoice> GetAll() => Invoices;
-    public static Invoice? Get(int id) => Invoices.FirstOrDefault(invoice => invoice.TestId == id);
-    public static void Add(Invoice invoice)
-    {
-        invoice.TestId = nextId++;
-        Invoices.Add(invoice);
+        foreach (var item in invoice.InvoiceItems)
+        {
+            item.RecalculateLineTotal();
+        }
+
+        _context.Invoices.Add(invoice);
+        await _context.SaveChangesAsync();
+
+        return invoice;
     }
 
-    public static void Delete(int id)
+    public async Task<bool> UpdateAsync(Guid id, UpdateInvoiceRequest request)
     {
-        var invoice = Get(id);
-        if (invoice is null)
-            return;
+        var invoice = await _context.Invoices
+            .Include(i => i.InvoiceItems)
+            .FirstOrDefaultAsync(i => i.InvoiceId == id);
 
-        Invoices.Remove(invoice);
+        if (invoice == null)
+        {
+            return false;
+        }
+
+        invoice.CustomerId = request.CustomerId;
+        invoice.CustomerName = request.CustomerName;
+        invoice.InvoiceDate = request.InvoiceDate;
+        invoice.DueDate = request.DueDate;
+
+        if (invoice.InvoiceItems.Count > 0)
+        {
+            _context.InvoiceItems.RemoveRange(invoice.InvoiceItems);
+        }
+
+        invoice.InvoiceItems = request.Items
+            .Select(item => new InvoiceItem
+            {
+                UnitPrice = item.UnitPrice,
+                Description = item.Description,
+                Quantity = item.Quantity
+            })
+            .ToList();
+
+        foreach (var item in invoice.InvoiceItems)
+        {
+            item.RecalculateLineTotal();
+        }
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 
-    public static void Update(Invoice invoice)
+    public async Task<bool> DeleteAsync(Guid id)
     {
-        var index = Invoices.FindIndex(i => i.TestId == invoice.TestId);
-        if (index == -1)
-            return;
+        var invoice = await _context.Invoices.FindAsync(id);
+        if (invoice == null)
+        {
+            return false;
+        }
 
-        Invoices[index] = invoice;
+        _context.Invoices.Remove(invoice);
+        await _context.SaveChangesAsync();
+        return true;
     }
-
 }

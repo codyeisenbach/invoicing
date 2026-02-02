@@ -26,4 +26,20 @@ public class InvoiceAppContext : DbContext
         }
     }
 
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Invoice>(entity =>
+        {
+            entity.Property(i => i.Subtotal).HasPrecision(18, 2);
+            entity.Property(i => i.Tax).HasPrecision(18, 2);
+            entity.Property(i => i.TotalAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<InvoiceItem>(entity =>
+        {
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.LineTotal).HasPrecision(18, 2);
+        });
+    }
+
 }

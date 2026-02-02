@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using InvoiceApp.Models;
 using InvoiceApp.Api.Contracts;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
+using InvoiceApp.Models;
+using InvoiceApp.Services;
 
 namespace InvoiceApp.Api.Controllers;
 
@@ -10,29 +9,23 @@ namespace InvoiceApp.Api.Controllers;
 [Route("[controller]")]
 public class InvoiceController : ControllerBase
 {
-    private readonly InvoiceAppContext _context;
+    private readonly IInvoiceService _invoiceService;
 
-    public InvoiceController(InvoiceAppContext context)
+    public InvoiceController(IInvoiceService invoiceService)
     {
-        _context = context;
+        _invoiceService = invoiceService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Invoice>>> GetInvoices()
     {
-        // Use .Include() to tell EF Core to join the InvoiceItems table
-        return await _context.Invoices
-            .Include(i => i.InvoiceItems)
-            .ToListAsync();
+        return await _invoiceService.GetAllAsync();
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<Invoice>> GetInvoiceById(Guid id)
     {
-        // FindAsync doesn't support Include, so we use FirstOrDefaultAsync
-        var invoice = await _context.Invoices
-            .Include(i => i.InvoiceItems)
-            .FirstOrDefaultAsync(i => i.InvoiceId == id);
+        var invoice = await _invoiceService.GetByIdAsync(id);
 
         if (invoice == null)
         {
@@ -44,29 +37,7 @@ public class InvoiceController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Invoice>> Create(CreateInvoiceRequest request)
     {
-        var invoice = new Invoice
-        {
-            CustomerId = request.CustomerId,
-            CustomerName = request.CustomerName,
-            InvoiceDate = request.InvoiceDate,
-            DueDate = request.DueDate,
-            InvoiceItems = request.Items
-                .Select(item => new InvoiceItem
-                {
-                    UnitPrice = item.UnitPrice,
-                    Description = item.Description,
-                    Quantity = item.Quantity
-                })
-                .ToList()
-        };
-
-        foreach (var item in invoice.InvoiceItems)
-        {
-            item.RecalculateLineTotal();
-        }
-
-        _context.Invoices.Add(invoice);
-        await _context.SaveChangesAsync();
+        var invoice = await _invoiceService.CreateAsync(request);
 
         return CreatedAtAction(nameof(GetInvoiceById), new { id = invoice.InvoiceId }, invoice);
     }
@@ -74,56 +45,14 @@ public class InvoiceController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, UpdateInvoiceRequest request)
     {
-        var invoice = await _context.Invoices
-            .Include(i => i.InvoiceItems)
-            .FirstOrDefaultAsync(i => i.InvoiceId == id);
-
-        if (invoice == null)
-        {
-            return NotFound();
-        }
-
-        invoice.CustomerId = request.CustomerId;
-        invoice.CustomerName = request.CustomerName;
-        invoice.InvoiceDate = request.InvoiceDate;
-        invoice.DueDate = request.DueDate;
-
-        if (invoice.InvoiceItems.Count > 0)
-        {
-            _context.InvoiceItems.RemoveRange(invoice.InvoiceItems);
-        }
-
-        invoice.InvoiceItems = request.Items
-            .Select(item => new InvoiceItem
-            {
-                UnitPrice = item.UnitPrice,
-                Description = item.Description,
-                Quantity = item.Quantity
-            })
-            .ToList();
-
-        foreach (var item in invoice.InvoiceItems)
-        {
-            item.RecalculateLineTotal();
-        }
-
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        var updated = await _invoiceService.UpdateAsync(id, request);
+        return updated ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var invoice = await _context.Invoices.FindAsync(id);
-        if (invoice == null)
-        {
-            return NotFound();
-        }
-
-        _context.Invoices.Remove(invoice);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
+        var deleted = await _invoiceService.DeleteAsync(id);
+        return deleted ? NoContent() : NotFound();
     }
 }
