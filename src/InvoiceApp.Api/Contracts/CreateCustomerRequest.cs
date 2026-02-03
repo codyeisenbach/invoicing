@@ -1,6 +1,8 @@
 using InvoiceApp.Models;
 namespace InvoiceApp.Api.Contracts;
 
+
+
 public sealed class CreateCustomerRequest
 {
     public required string Name { get; set; }
