@@ -21,19 +21,22 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore src/InvoiceApp.Api/InvoiceApp.Api.csproj
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build src/InvoiceApp.Api/InvoiceApp.Api.csproj --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+        run: dotnet publish src/InvoiceApp.Api/InvoiceApp.Api.csproj -c Release -o ${{ github.workspace }}/publish
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ github.workspace }}/publish
 
   deploy:
     runs-on: ubuntu-latest
@@ -61,5 +64,5 @@ jobs:
         with:
           app-name: 'invoicing-backend'
           slot-name: 'Production'
-          package: .
+          package: .net-app
           
