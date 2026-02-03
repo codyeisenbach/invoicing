@@ -21,7 +21,7 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       - name: Restore
         run: dotnet restore src/InvoiceApp.Api/InvoiceApp.Api.csproj
@@ -50,7 +50,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
-      
+          path: ${{ github.workspace }}/publish
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -62,7 +63,6 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'invoicing-backend'
-          slot-name: 'Production'
-          package: .net-app
-          
+          app-name: "invoicing-backend"
+          slot-name: "Production"
+          package: ${{ github.workspace }}/publish
