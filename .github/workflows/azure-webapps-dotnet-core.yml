@@ -20,14 +20,15 @@
 name: Build and deploy ASP.Net Core app to an Azure Web App
 
 env:
-  AZURE_WEBAPP_NAME: your-app-name    # set this to the name of your Azure Web App
-  AZURE_WEBAPP_PACKAGE_PATH: ${{ github.workspace }}/publish
-      # set this to the path to your web app project, defaults to the repository root
-  DOTNET_VERSION: '10.0.x'                 # set this to the .NET Core version to use
+  AZURE_WEBAPP_NAME: your-app-name # set this to the name of your Azure Web App
+  AZURE_WEBAPP_PACKAGE_PATH:
+    ${{ github.workspace }}/publish
+    # set this to the path to your web app project, defaults to the repository root
+  DOTNET_VERSION: "10.0.x" # set this to the .NET Core version to use
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -54,7 +55,7 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build src/InvoiceApp.Api/InvoiceApp.Api.csproj -c Release
 
       - name: dotnet publish
         run: dotnet publish src/InvoiceApp.Api/InvoiceApp.Api.csproj -c Release -o ${{ github.workspace }}/publish
@@ -71,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Development'
+      name: "Development"
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
