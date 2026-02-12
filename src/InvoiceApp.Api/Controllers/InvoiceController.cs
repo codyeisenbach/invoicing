@@ -6,7 +6,7 @@ using InvoiceApp.Services;
 namespace InvoiceApp.Api.Controllers;
 
 [ApiController]
-[Route("api/invoices")]
+[Route("Invoice")]
 public class InvoiceController : ControllerBase
 {
     private readonly IInvoiceService _invoiceService;
