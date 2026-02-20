@@ -23,7 +23,10 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ProductionCorsPolicy", policy =>
     {
-        var origins = builder.Configuration["AllowedOrigins"]?.Split(",", StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+        var origins = builder.Configuration["AllowedOrigins"]?
+            .Split(",", StringSplitOptions.RemoveEmptyEntries)
+            .Select(o => o.Trim())
+            .ToArray() ?? Array.Empty<string>();
         policy.WithOrigins(origins)
               .AllowAnyMethod()
               .AllowAnyHeader();
