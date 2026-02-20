@@ -7,7 +7,11 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Add DB Context
-builder.Services.AddDbContext<InvoiceAppContext>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<InvoiceAppContext>(options =>
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+    }));
 
 // Add services to the container.
 builder.Services.AddControllers();
